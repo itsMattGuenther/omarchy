@@ -29,6 +29,7 @@ Panel {
   property string activeConnectionAction: ""
   property string activeConnectionAddress: ""
   property bool discoveryPausedForAction: false
+  // The action that last failed ("pair" | "connect"); translated where shown.
   property string actionFailure: ""
 
   readonly property var adapter: Bluetooth.defaultAdapter
@@ -315,9 +316,7 @@ Panel {
   function finishConnectionAction(exitCode) {
     if (exitCode !== 0) {
       setPendingAction(activeConnectionAddress, "")
-      actionFailure = activeConnectionAction === "pair"
-        ? "Pairing failed — keep the device in pairing mode and try again"
-        : "Connection failed — make sure the device is nearby and try again"
+      actionFailure = activeConnectionAction
       failureTimer.restart()
     } else {
       syncPendingActions()
@@ -967,7 +966,7 @@ Panel {
         Text {
           textFormat: Text.PlainText
           visible: root.actionFailure !== ""
-          text: root.actionFailure
+          text: root.actionFailure === "pair" ? Commons.I18n.t("bluetooth.pairingFailed") : Commons.I18n.t("bluetooth.connectionFailed")
           color: root.bar.urgent
           font.family: root.bar.fontFamily
           font.pixelSize: Style.font.bodySmall
