@@ -34,6 +34,8 @@ assert(/adapter\.discovering = false[\s\S]*connectionStartTimeout\.restart\(\)/.
 assert(/id: connectionProc[\s\S]*onExited:[\s\S]*finishConnectionAction/.test(panelSource), 'bluetooth observes connection command failures')
 assert(/showDiscoveredDevices:[^\n]*discoveryPausedForAction/.test(panelSource), 'bluetooth keeps discovered devices visible while discovery pauses for an action')
 assert(/visible: root\.actionFailure !== ""/.test(panelSource), 'bluetooth shows connection failures in the panel')
+assert(/id: pendingTimeout[\s\S]*?onTriggered:[^\n]*expirePendingActions\([^\n]*connectionProc\.running/.test(panelSource), 'bluetooth keeps a running pair or connect row past the pending timeout')
+assert(/syncPendingActions\(\)[^}]*pendingTimeout\.restart\(\)/.test(panelSource.match(/function finishConnectionAction[\s\S]*?\n {2}\}/)[0]), 'bluetooth restarts the pending timeout once a watched connection succeeds')
 
 // Quickshell only forwards a discovering write that differs from BlueZ's last
 // confirmed state, so a stop written in the same instant as an in-flight
@@ -115,6 +117,12 @@ assertDeepEqual(
   'bluetooth adds pending actions immutably'
 )
 assertDeepEqual(bluetooth.withPendingAction({ a: 'connecting' }, 'a', ''), {}, 'bluetooth clears pending actions immutably')
+assertDeepEqual(
+  bluetooth.expirePendingActions({ a: 'connecting', b: 'forgetting' }, 'a'),
+  { a: 'connecting' },
+  'bluetooth keeps the row of a running pair or connect when pending actions time out'
+)
+assertDeepEqual(bluetooth.expirePendingActions({ a: 'connecting', b: 'forgetting' }, ''), {}, 'bluetooth clears every pending action on timeout when nothing is running')
 
 const bluetoothSink = {
   isSink: true,

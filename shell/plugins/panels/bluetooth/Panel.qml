@@ -320,6 +320,9 @@ Panel {
       failureTimer.restart()
     } else {
       syncPendingActions()
+      // The timeout passed over this row while the helper ran; give it a fresh
+      // one in case BlueZ never reports the device connected.
+      if (pendingAction(activeConnectionAddress)) pendingTimeout.restart()
     }
 
     activeConnectionAction = ""
@@ -642,7 +645,7 @@ Panel {
     id: pendingTimeout
     interval: 20000
     repeat: false
-    onTriggered: root.pendingActions = ({})
+    onTriggered: root.pendingActions = Model.expirePendingActions(root.pendingActions, connectionProc.running ? root.activeConnectionAddress : "")
   }
 
   Process {

@@ -138,6 +138,13 @@ function withPendingAction(actions, address, action) {
   return next
 }
 
+// The pending-action timeout keeps the row of the pair/connect the panel is
+// still watching: that run clears its own row when the helper exits, and pair
+// plus connect can outlast the timeout.
+function expirePendingActions(actions, runningAddress) {
+  return withPendingAction(({}), runningAddress, pendingAction(actions, runningAddress))
+}
+
 function visibleSections(lists, discovering) {
   var sections = []
   if (lists && lists.connected && lists.connected.length > 0) sections.push("connected")
@@ -171,6 +178,7 @@ if (typeof module !== "undefined") {
     cloneMap: cloneMap,
     pendingAction: pendingAction,
     withPendingAction: withPendingAction,
+    expirePendingActions: expirePendingActions,
     visibleSections: visibleSections,
     sectionDevices: sectionDevices
   }
