@@ -39,6 +39,7 @@ assert(/id: connectionProc[\s\S]*onExited:[\s\S]*finishConnectionAction/.test(pa
 assert(/showDiscoveredDevices:[^\n]*connectionActionRunning/.test(panelSource), 'bluetooth keeps discovered devices visible while discovery pauses for an action')
 assert(/function runConnectionAction[^\n]*\n[^\n]*connectionActionRunning\) return/.test(panelSource), 'bluetooth ignores a second connection while one runs in any instance')
 assert(/readonly property string actionTooltip: \{[^}]*if \(root\.connectionActionRunning\) return ""/.test(panelSource), 'bluetooth stops offering Connect or Pair while a connection runs')
+assert(/actionFailure = Model\.failedConnectionStep\(activeConnectionAction, deviceForAddress\(activeConnectionAddress\)\)/.test(panelSource), 'bluetooth names the step that failed')
 assert(/visible: root\.actionFailure !== ""/.test(panelSource), 'bluetooth shows connection failures in the panel')
 assert(/id: pendingTimeout[\s\S]*?onTriggered:[^\n]*expirePendingActions\([^\n]*connectionProc\.running/.test(panelSource), 'bluetooth keeps a running pair or connect row past the pending timeout')
 assert(/syncPendingActions\(\)[^}]*pendingTimeout\.restart\(\)/.test(panelSource.match(/function finishConnectionAction[\s\S]*?\n {2}\}/)[0]), 'bluetooth restarts the pending timeout once a watched connection succeeds')
@@ -129,6 +130,11 @@ assertDeepEqual(
   'bluetooth keeps the row of a running pair or connect when pending actions time out'
 )
 assertDeepEqual(bluetooth.expirePendingActions({ a: 'connecting', b: 'forgetting' }, ''), {}, 'bluetooth clears every pending action on timeout when nothing is running')
+assertEqual(bluetooth.failedConnectionStep('pair', { paired: false, bonded: false }), 'pair', 'bluetooth reports a pair that never paired as a pairing failure')
+assertEqual(bluetooth.failedConnectionStep('pair', { paired: true }), 'connect', 'bluetooth reports a pair that paired but did not connect as a connection failure')
+assertEqual(bluetooth.failedConnectionStep('pair', { bonded: true }), 'connect', 'bluetooth treats a bonded device as paired when naming the failed step')
+assertEqual(bluetooth.failedConnectionStep('pair', null), 'pair', 'bluetooth reports a pairing failure when the device is gone')
+assertEqual(bluetooth.failedConnectionStep('connect', { paired: true }), 'connect', 'bluetooth reports a failed connect as a connection failure')
 
 const bluetoothSink = {
   isSink: true,

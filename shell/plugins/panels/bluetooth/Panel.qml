@@ -185,7 +185,10 @@ Panel {
   // property declaration), so it is iterated directly.
   function deviceFor(row) {
     if (!row || !row.dev) return null
-    var addr = row.dev.address || ""
+    return deviceForAddress(row.dev.address || "")
+  }
+
+  function deviceForAddress(addr) {
     var devs = devices || []
     for (var i = 0; i < devs.length; i++) {
       if ((devs[i].address || "") === addr) return devs[i]
@@ -328,7 +331,7 @@ Panel {
   function finishConnectionAction(exitCode) {
     if (exitCode !== 0) {
       setPendingAction(activeConnectionAddress, "")
-      actionFailure = activeConnectionAction
+      actionFailure = Model.failedConnectionStep(activeConnectionAction, deviceForAddress(activeConnectionAddress))
       failureTimer.restart()
     } else {
       syncPendingActions()
