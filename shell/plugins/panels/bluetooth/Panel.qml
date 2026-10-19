@@ -32,6 +32,18 @@ Panel {
   // The action that last failed ("pair" | "connect"); translated where shown.
   property string actionFailure: ""
 
+  // Every per-monitor instance shares the adapter, so a pair/connect started
+  // from one holds discovery and new connections off in all of them,
+  // including a panel reopened on another monitor while the helper runs.
+  readonly property bool connectionActionRunning: {
+    if (discoveryPausedForAction) return true
+    var items = bar && typeof bar.moduleWidgets === "function" ? bar.moduleWidgets(moduleName) : []
+    for (var i = 0; i < items.length; i++) {
+      if (items[i] && items[i] !== root && items[i].discoveryPausedForAction === true) return true
+    }
+    return false
+  }
+
   readonly property var adapter: Bluetooth.defaultAdapter
 
   // True while this instance owes BlueZ a StopDiscovery: set when it starts
@@ -65,7 +77,7 @@ Panel {
   readonly property var connectedDevices: deviceGroups.connected || []
   readonly property var knownDevices: deviceGroups.known || []
   readonly property var discoveredDevices: deviceGroups.discovered || []
-  readonly property bool showDiscoveredDevices: adapter && (adapter.discovering || discoveryPausedForAction)
+  readonly property bool showDiscoveredDevices: adapter && (adapter.discovering || connectionActionRunning)
 
   readonly property string icon: {
     if (!adapter) return ""
@@ -286,7 +298,7 @@ Panel {
   }
 
   function runConnectionAction(device, action) {
-    if (!device || !device.address || connectionProc.running || queuedConnectionAction) return
+    if (!device || !device.address || connectionActionRunning) return
 
     actionFailure = ""
     failureTimer.stop()
@@ -571,7 +583,7 @@ Panel {
     interval: 1000
     repeat: true
     triggeredOnStart: true
-    running: root.opened && root.adapter !== null && root.adapter.enabled && !root.adapter.discovering && !root.discoveryPausedForAction
+    running: root.opened && root.adapter !== null && root.adapter.enabled && !root.adapter.discovering && !root.connectionActionRunning
     onTriggered: {
       root.owesDiscoveryStop = true
       root.adapter.discovering = true
@@ -623,6 +635,9 @@ Panel {
     target: root.adapter
     function onDiscoveringChanged() {
       if (!root.adapter.discovering) root.owesDiscoveryStop = false
+      // A start fired before the click can be confirmed after it; stop it
+      // rather than let it scan through the pair/connect.
+      else if (root.discoveryPausedForAction) root.adapter.discovering = false
       if (!root.adapter.discovering && root.discoveryPausedForAction && root.queuedConnectionAction)
         root.startQueuedConnectionAction()
     }
@@ -995,6 +1010,8 @@ Panel {
     readonly property string actionTooltip: {
       if (!dev) return ""
       if (isConnected) return Commons.I18n.t("bluetooth.disconnect")
+      // Clicks wait out a running pair/connect, so don't offer one meanwhile.
+      if (root.connectionActionRunning) return ""
       if (isDiscovered) return Commons.I18n.t("bluetooth.pair")
       return Commons.I18n.t("bluetooth.connect")
     }
@@ -1035,7 +1052,7 @@ Panel {
       anchors.fill: parent
       hoverEnabled: true
       acceptedButtons: Qt.LeftButton | Qt.RightButton
-      cursorShape: row.dev ? Qt.PointingHandCursor : Qt.ArrowCursor
+      cursorShape: row.actionTooltip !== "" ? Qt.PointingHandCursor : Qt.ArrowCursor
 
       onContainsMouseChanged: if (containsMouse) {
         root.cursorActive = true
