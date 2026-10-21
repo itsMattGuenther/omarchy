@@ -36,6 +36,7 @@ assert(discoveringHandler && /else if \(root\.discoveryPausedForAction\) root\.a
 
 assert(/adapter\.discovering = false[\s\S]*connectionStartTimeout\.restart\(\)/.test(panelSource), 'bluetooth stops discovery before starting a connection action')
 assert(/id: connectionProc[\s\S]*onExited:[\s\S]*finishConnectionAction/.test(panelSource), 'bluetooth observes connection command failures')
+assert(/id: connectionProc[\s\S]*?onRunningChanged: if \(!running && root\.activeConnectionAddress !== ""\) root\.finishConnectionAction\(/.test(panelSource), 'bluetooth releases a pair or connect whose helper fails to start')
 assert(/showDiscoveredDevices:[^\n]*connectionActionRunning/.test(panelSource), 'bluetooth keeps discovered devices visible while discovery pauses for an action')
 assert(/function runConnectionAction[^\n]*\n[^\n]*connectionActionRunning\) return/.test(panelSource), 'bluetooth ignores a second connection while one runs in any instance')
 assert(/readonly property string actionTooltip: \{[^}]*if \(root\.connectionActionRunning\) return ""/.test(panelSource), 'bluetooth stops offering Connect or Pair while a connection runs')

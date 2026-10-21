@@ -670,6 +670,8 @@ Panel {
     id: connectionProc
     command: []
     onExited: function(exitCode) { root.finishConnectionAction(exitCode) }
+    // A helper that fails to start never emits exited, only running going false.
+    onRunningChanged: if (!running && root.activeConnectionAddress !== "") root.finishConnectionAction(-1)
   }
 
   Timer {
